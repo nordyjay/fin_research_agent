@@ -19,10 +19,6 @@
                     <div class="stat-value">{{ documents|length }}</div>
                     <div class="stat-label">Total Documents</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ documents|length|add:"-1"|default:"0" }}</div>
-                    <div class="stat-label">Processed</div>
-                </div>
             </div>
         </div>
     </div>
@@ -247,22 +243,47 @@ function handleDrop(e) {
     handleFiles(files);
 }
 
-// Click to select
-dropZone.addEventListener('click', () => fileInput.click());
+// Click to select - prevent double clicks and event bubbling
+dropZone.addEventListener('click', (e) => {
+    if (e.target.closest('.file-preview-remove')) {
+        // Don't trigger file input if clicking the remove button
+        return;
+    }
+    if (e.target.closest('.drop-zone-input')) {
+        // Don't trigger again if clicking the input itself
+        return;
+    }
+    e.stopPropagation();
+    fileInput.click();
+});
 
 // File input change
 fileInput.addEventListener('change', function(e) {
+    console.log('File input changed:', this.files.length, 'files');
+    if (this.files.length > 0) {
+        console.log('File selected:', this.files[0].name, this.files[0].type);
+    }
     handleFiles(this.files);
 });
 
 function handleFiles(files) {
-    if (files.length === 0) return;
+    if (files.length === 0) {
+        console.log('No files selected');
+        return;
+    }
     
     const file = files[0];
+    console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
     
-    // Validate file type
-    if (!file.type.includes('pdf')) {
+    // Validate file type - check both MIME type and extension
+    const isPDF = file.type === 'application/pdf' || 
+                  file.type === 'application/x-pdf' || 
+                  file.name.toLowerCase().endsWith('.pdf');
+    
+    if (!isPDF) {
+        console.error('Invalid file type:', file.type);
         showNotification('Please select a valid PDF file', 'error');
+        fileInput.value = ''; // Clear the input
         return;
     }
     
@@ -278,6 +299,9 @@ function handleFiles(files) {
 }
 
 function showFilePreview(file) {
+    // Store file reference to prevent it from being cleared
+    fileInput.dataset.hasFile = 'true';
+    
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
     filePreview.innerHTML = `
         <div class="file-preview-content">
@@ -297,6 +321,7 @@ function showFilePreview(file) {
 
 function clearFileSelection() {
     fileInput.value = '';
+    fileInput.dataset.hasFile = 'false';
     filePreview.innerHTML = '';
     filePreview.style.display = 'none';
     dropZone.querySelector('.drop-zone-content').style.display = 'flex';
