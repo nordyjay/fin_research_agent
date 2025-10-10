@@ -1,0 +1,8 @@
+*.ipynb
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+/venv
+*.pyc
+*.DS_Store

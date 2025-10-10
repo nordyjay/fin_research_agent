@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ conversation.title }} - Chat{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-4 border-b">
+            <h2 class="text-xl font-bold">{{ conversation.title }}</h2>
+            <p class="text-sm text-gray-500">Started {{ conversation.created_at|timesince }} ago</p>
+        </div>
+        
+        <div class="p-6 h-96 overflow-y-auto">
+            {% for message in messages %}
+            <div class="mb-4 {% if message.role == 'user' %}text-right{% endif %}">
+                <div class="inline-block p-3 rounded-lg {% if message.role == 'user' %}bg-blue-600 text-white{% else %}bg-gray-100{% endif %}">
+                    <p>{{ message.content }}</p>
+                    {% if message.metadata.sources %}
+                    <div class="mt-2 text-xs {% if message.role == 'user' %}text-blue-200{% else %}text-gray-600{% endif %}">
+                        Sources: {{ message.metadata.sources|length }}
+                    </div>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-gray-500 mt-1">{{ message.created_at|time:"H:i" }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="p-4 border-t">
+            <form method="post" action="{% url 'chat:message' %}">
+                {% csrf_token %}
+                <input type="hidden" name="conversation_id" value="{{ conversation.id }}">
+                <div class="flex gap-2">
+                    <input type="text" name="message" placeholder="Type your message..." 
+                           class="flex-1 border rounded px-3 py-2 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Send
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

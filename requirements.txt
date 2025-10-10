@@ -1,0 +1,35 @@
+# Django
+Django
+psycopg2-binary
+python-dotenv
+
+# LlamaIndex Core
+llama-index
+llama-index-llms-ollama
+llama-index-embeddings-ollama
+llama-index-vector-stores-postgres
+llama-index-multi-modal-llms-ollama
+
+openai
+llama-index-llms-openai
+llama-index-embeddings-openai
+llama-index-multi-modal-llms-openai
+llama-index-vector-stores-postgres
+
+# Document Processing
+llama-index-readers-file
+pypdf
+pdfplumber
+Pillow
+pytesseract
+pdf2image
+PyMuPDF
+
+# Vector Database
+pgvector
+sqlalchemy
+
+
+
+# Utilities
+numpy

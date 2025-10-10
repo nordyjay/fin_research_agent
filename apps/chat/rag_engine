@@ -1,0 +1,111 @@
+# apps/chat/rag_engine.py
+"""
+RAG query engine with multimodal support and citation tracking.
+Works with both Ollama and OpenAI - no changes needed!
+"""
+
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.response_synthesizers import get_response_synthesizer
+from llama_index.core import PromptTemplate
+from .llamaindex_setup import get_index, configure_llamaindex
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class MultimodalRAG:
+    """
+    RAG engine optimized for broker research queries.
+    Handles retrieval, reranking, and response generation with citations.
+    """
+    
+    def __init__(self):
+        configure_llamaindex()
+        self.index = get_index()
+        
+        # Custom prompt for financial research
+        self.qa_prompt = PromptTemplate(
+            """You are a helpful financial research assistant analyzing broker research reports.
+
+Context information from various research reports:
+{context_str}
+
+Question: {query_str}
+
+Instructions:
+1. Answer the question using ONLY the information provided in the context
+2. Be specific and cite sources (broker name, ticker, date, page number)
+3. If comparing multiple sources, clearly distinguish between them
+4. If the information isn't in the context, say so
+5. Format your answer clearly with key points
+
+Answer:"""
+        )
+        
+    def query(self, question, top_k=5):
+        """
+        Execute RAG query with retrieval and response generation.
+        
+        Args:
+            question: User's question
+            top_k: Number of chunks to retrieve
+            
+        Returns:
+            dict: Response with answer and sources
+        """
+        logger.info(f"Processing query: {question}")
+        
+        # Create retriever
+        retriever = VectorIndexRetriever(
+            index=self.index,
+            similarity_top_k=top_k,
+        )
+        
+        # Create response synthesizer
+        response_synthesizer = get_response_synthesizer(
+            response_mode="compact",
+            text_qa_template=self.qa_prompt,
+        )
+        
+        # Create query engine
+        query_engine = RetrieverQueryEngine(
+            retriever=retriever,
+            response_synthesizer=response_synthesizer,
+        )
+        
+        # Execute query
+        response = query_engine.query(question)
+        
+        # Format sources
+        sources = self._format_sources(response.source_nodes)
+        
+        return {
+            'answer': str(response),
+            'sources': sources,
+            'raw_response': response,
+        }
+    
+    def _format_sources(self, source_nodes):
+        """Format source nodes for display"""
+        sources = []
+        
+        for idx, node in enumerate(source_nodes, start=1):
+            source = {
+                'index': idx,
+                'broker': node.metadata.get('broker', 'Unknown'),
+                'ticker': node.metadata.get('ticker', ''),
+                'report_date': node.metadata.get('report_date', ''),
+                'page_number': node.metadata.get('page_number', ''),
+                'content_type': node.metadata.get('content_type', 'text'),
+                'score': round(node.score, 3) if hasattr(node, 'score') else None,
+                'text_preview': node.text[:300] + "..." if len(node.text) > 300 else node.text,
+            }
+            
+            # Add image path if available
+            if 'image_path' in node.metadata:
+                source['image_path'] = node.metadata['image_path']
+            
+            sources.append(source)
+        
+        return sources

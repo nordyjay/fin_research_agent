@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-4">Chat Interface</h2>
+        
+        <div class="mb-4">
+            <p class="text-gray-600">Welcome to the Broker Research Chatbot. Start a conversation or select an existing one.</p>
+        </div>
+        
+        <div class="mb-6">
+            <button onclick="startNewConversation()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                New Conversation
+            </button>
+        </div>
+        
+        {% if conversations %}
+        <div class="space-y-2">
+            <h3 class="font-semibold">Recent Conversations:</h3>
+            {% for conv in conversations %}
+            <div class="border rounded p-3 hover:bg-gray-50">
+                <a href="{% url 'chat:detail' conv.id %}" class="text-blue-600 hover:underline">
+                    {{ conv.title }}
+                </a>
+                <p class="text-sm text-gray-500">{{ conv.created_at|timesince }} ago</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500">No conversations yet. Start a new one!</p>
+        {% endif %}
+    </div>
+    
+    <!-- New Conversation Modal/Form -->
+    <div id="newConversationForm" class="hidden mt-6 bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Start a New Conversation</h3>
+        <form method="post" action="{% url 'chat:message' %}" onsubmit="return submitFirstMessage(event)">
+            {% csrf_token %}
+            <textarea 
+                name="message" 
+                id="firstMessage"
+                placeholder="Type your first message..."
+                class="w-full border rounded px-3 py-2 h-24 mb-4"
+                required
+            ></textarea>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    Start Chat
+                </button>
+                <button type="button" onclick="cancelNewConversation()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function startNewConversation() {
+    document.getElementById('newConversationForm').classList.remove('hidden');
+}
+
+function cancelNewConversation() {
+    document.getElementById('newConversationForm').classList.add('hidden');
+    document.getElementById('firstMessage').value = '';
+}
+
+async function submitFirstMessage(event) {
+    event.preventDefault();
+    
+    const message = document.getElementById('firstMessage').value;
+    if (!message.trim()) return false;
+    
+    try {
+        const response = await fetch('{% url "chat:message" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                message: message
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect to the new conversation
+            window.location.href = `/chat/${data.conversation_id}/`;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error creating conversation: ' + error);
+    }
+    
+    return false;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,85 @@
+<!-- apps/documents/templates/documents/upload.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-6">Upload Broker Research PDF</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+            <div class="mb-4 p-4 rounded {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            
+            <div>
+                <label class="block text-sm font-medium mb-2">PDF File *</label>
+                <input type="file" name="pdf_file" accept=".pdf" required
+                       class="w-full border rounded px-3 py-2">
+            </div>
+            
+            <details class="mt-4">
+                <summary class="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800">Optional Metadata</summary>
+                <div class="mt-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Broker Name</label>
+                        <input type="text" name="broker" placeholder="e.g., UBS, Barclays"
+                               class="w-full border rounded px-3 py-2">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Ticker Symbol</label>
+                        <input type="text" name="ticker" placeholder="e.g., NVDA, AAPL"
+                               class="w-full border rounded px-3 py-2">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Report Date</label>
+                        <input type="date" name="report_date"
+                               class="w-full border rounded px-3 py-2">
+                    </div>
+                </div>
+            </details>
+            
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                Upload and Process
+            </button>
+        </form>
+    </div>
+    
+    <!-- Documents List -->
+    <div class="mt-8 bg-white rounded-lg shadow p-6">
+        <h3 class="text-xl font-bold mb-4">Uploaded Documents</h3>
+        <div class="space-y-3">
+            {% for doc in documents %}
+            <div class="border rounded p-4 flex justify-between items-center">
+                <div>
+                    <p class="font-medium">
+                        {% if doc.broker %}{{ doc.broker }}{% else %}Unknown Broker{% endif %}
+                        {% if doc.ticker %} - {{ doc.ticker }}{% endif %}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        {% if doc.report_date %}{{ doc.report_date }} | {% endif %}
+                        {% if doc.processed %}
+                            <span class="text-green-600">✓ Processed</span>
+                        {% else %}
+                            <span class="text-yellow-600">⏳ Processing...</span>
+                        {% endif %}
+                    </p>
+                    {% if doc.processing_error %}
+                    <p class="text-sm text-red-600 mt-1">Error: {{ doc.processing_error }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 text-center py-8">No documents uploaded yet</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
