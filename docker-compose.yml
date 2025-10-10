@@ -33,7 +33,8 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - DEBUG=True
-      - SEED_DOCUMENTS=false
+      - SEED_DOCUMENTS=true
+      - SEED_DOCUMENTS_ARGS=--process
     env_file:
       - .env
     depends_on:

@@ -34,8 +34,15 @@ python manage.py collectstatic --noinput
 
 # Seed documents if requested
 if [ "$SEED_DOCUMENTS" = "true" ]; then
-    echo "Seeding documents..."
-    python manage.py seed_documents || true
+    echo "Seeding documents from /app/seed_data directory..."
+    # Use SEED_DOCUMENTS_ARGS if provided, otherwise just run basic seeding
+    if [ -n "$SEED_DOCUMENTS_ARGS" ]; then
+        echo "Running: python manage.py seed_documents $SEED_DOCUMENTS_ARGS"
+        python manage.py seed_documents $SEED_DOCUMENTS_ARGS || true
+    else
+        python manage.py seed_documents || true
+    fi
+    echo "Document seeding completed."
 fi
 
 # Start server
