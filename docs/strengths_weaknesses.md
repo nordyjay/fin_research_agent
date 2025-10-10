@@ -349,6 +349,12 @@ Poor formatting makes correct information unusable. Users can't parse a wall of 
 
 Users resort to clicking through to source documents rather than trusting the displayed results. This defeats the purpose of summarization and makes the system feel broken even when it's working correctly.
 
+**Solutions:**
+- Implement proper markdown rendering (marked.js, markdown-it)
+- Use dedicated table components for financial data display
+- Add export functionality for Excel/CSV compatibility
+- Consider format-aware rendering based on content type
+
 ## Architectural Strengths and Weaknesses
 
 ### Strengths in Architecture

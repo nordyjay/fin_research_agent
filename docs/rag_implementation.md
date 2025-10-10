@@ -308,4 +308,4 @@ However, critical implementation gaps prevent production readiness:
 
 The intellectual foundation is solid. With 3-4 weeks of focused engineering addressing these gaps, this system would deliver genuine value. The ideas work - they just need complete implementation.
 
-**Note: The weak formatting of tables and complex text in the display remains an ongoing challenge that affects how results are presented to users.**
+**Note: The weak formatting of tables and complex text in the display remains an ongoing challenge that affects how results are presented to users. The backend correctly extracts and preserves formatting; the display layer requires improvement through proper markdown rendering and dedicated table components.**

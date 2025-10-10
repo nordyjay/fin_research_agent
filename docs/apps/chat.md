@@ -208,6 +208,12 @@ While our system successfully retrieves tables and structured data, they display
 
 **Note: This is partly due to weak table and text formatting capabilities in the artifact display system, which remains an ongoing challenge.**
 
+**Solutions:**
+- Implement table rendering components (react-table, ag-grid)
+- Use markdown-to-HTML converters with proper styling
+- Add proper character escaping and encoding
+- Provide raw markdown view as interim solution
+
 ## What We Got Right - Strengths Worth Preserving
 
 Despite the failures, our system demonstrates several sophisticated design successes:
@@ -260,4 +266,4 @@ These problems are fixable with focused engineering effort. The foundation is so
 
 For business leaders evaluating this system: The core technology works well. Budget 2-4 weeks of engineering time to address the critical issues, and you'll have a powerful tool for financial research. The investment is justified by the time savings and improved decision-making the system enables.
 
-**Remember: The weak formatting of tables and text in the display remains an ongoing challenge that affects user experience.**
+**Remember: The weak formatting of tables and text in the display remains an ongoing challenge that affects user experience. The backend correctly preserves formatting, but the frontend display layer requires significant improvement.**

@@ -42,7 +42,7 @@ When you start the system:
 
 ## Documentation Guide - What Each Document Covers
 
-### System Architecture (`docs/architecture.md`)
+### [System Architecture](docs/architecture.md)
 **What it explains:** The complete technical flow from uploading a PDF to getting an answer
 **Why read this:** Understand how all the pieces work together - database, web server, AI models
 **Key insights:** 
@@ -51,7 +51,7 @@ When you start the system:
 - Why we chose PostgreSQL over specialized vector databases
 - Performance characteristics and limits
 
-### Chat Application (`docs/apps/chat.md`)
+### [Chat Application](docs/apps/chat.md)
 **What it explains:** The question-answering system and how it finds relevant information
 **Why read this:** Learn how the system understands questions and generates accurate answers
 **Key insights:**
@@ -59,8 +59,9 @@ When you start the system:
 - How the system avoids showing duplicate information
 - The three-stage filtering process that ensures diverse results
 - Why image search is completely broken (and how to fix it)
+- **Note: Table and text formatting in the chat interface remains problematic - see document for details**
 
-### Documents Application (`docs/apps/documents.md`)
+### [Documents Application](docs/apps/documents.md)
 **What it explains:** How PDFs are uploaded, processed, and stored
 **Why read this:** Understand the document ingestion pipeline and metadata extraction
 **Key insights:**
@@ -69,7 +70,7 @@ When you start the system:
 - How broker names and dates are automatically extracted
 - The trade-offs in our synchronous processing approach
 
-### RAG Implementation (`docs/rag_implementation.md`)
+### [RAG Implementation](docs/rag_implementation.md)
 **What it explains:** The search technology that powers question answering
 **Why read this:** Deep dive into how semantic search works without getting too technical
 **Key insights:**
@@ -77,15 +78,16 @@ When you start the system:
 - How 512-token chunks balance accuracy and performance
 - The sophisticated deduplication that prevents repetitive answers
 - Why we retrieve 15 results but only show 5-7
+- **Note: Formatting struggles affect how results are displayed to users**
 
-### Strengths & Weaknesses (`docs/strengths_weaknesses.md`)
+### [Strengths & Weaknesses](docs/strengths_weaknesses.md)
 **What it explains:** Honest assessment of what works well and what's broken
 **Why read this:** Understand limitations before using in production
 **Key insights:**
 - Image processing is completely broken (30% of content unsearchable)
 - No caching means unnecessary costs for repeated questions
 - Synchronous architecture limits to ~10 concurrent users
-- Table and text formatting in results needs improvement
+- **Critical: Table and text formatting remains consistently weak throughout the system**
 
 ## Key Features Explained
 
@@ -116,10 +118,12 @@ Drop in a PDF named "20240115 - Goldman Sachs - NVDA - Initiating Coverage.pdf" 
 4. **No Caching** - Asking the same question twice costs money each time
 
 ### Quality Issues
-1. **Table Formatting** - Tables in search results show as basic text, losing visual structure
-2. **Text Formatting** - Multi-paragraph responses lose formatting, appearing as walls of text
+1. **Table Formatting** - Tables display as continuous text strings, losing column structure essential for financial data
+2. **Text Formatting** - Multi-paragraph responses collapse into walls of text without proper breaks
 3. **No Progress Tracking** - The progress bar during upload is fake
 4. **Limited Scale** - System slows significantly beyond 100,000 text chunks
+
+**Note on Formatting:** These display issues stem from the frontend rendering layer. Solutions include implementing proper markdown renderers or dedicated table components.
 
 ## Technology Stack
 
