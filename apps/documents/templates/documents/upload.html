@@ -1,249 +1,361 @@
-<!-- apps/documents/templates/documents/upload.html -->
 {% extends 'base.html' %}
 
-{% block content %}
-<!-- Toast Container -->
-<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+{% block title %}Document Library - Financial Research Intelligence{% endblock %}
 
-<!-- Upload Progress Bar -->
-<div id="uploadProgress" class="fixed top-0 left-0 w-full h-1 bg-gray-200 hidden">
-    <div id="progressBar" class="h-full bg-blue-600 transition-all duration-500" style="width: 0%"></div>
-</div>
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-2xl font-bold mb-6">Upload Broker Research PDF</h2>
-        
-        {% if messages %}
-            {% for message in messages %}
-            <div class="mb-4 p-4 rounded {% if message.tags == 'error' %}bg-red-100 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        {% endif %}
-        
-        <form method="post" enctype="multipart/form-data" class="space-y-4" id="uploadForm">
-            {% csrf_token %}
-            
+{% block extra_css %}
+<link rel="stylesheet" href="{% load static %}{% static 'css/upload.css' %}">
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="page-header-content">
             <div>
-                <label class="block text-sm font-medium mb-2">PDF File *</label>
-                <input type="file" name="pdf_file" accept=".pdf" required
-                       class="w-full border rounded px-3 py-2" id="pdfFileInput">
+                <h1 class="page-title">Document Library</h1>
+                <p class="page-subtitle">Upload and manage broker research PDFs</p>
+            </div>
+            <div class="page-stats">
+                <div class="stat-card">
+                    <div class="stat-value">{{ documents|length }}</div>
+                    <div class="stat-label">Total Documents</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ documents|length|add:"-1"|default:"0" }}</div>
+                    <div class="stat-label">Processed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upload-section">
+        <!-- Upload Card -->
+        <div class="card upload-card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Upload New Document
+                </h2>
             </div>
             
-            <details class="mt-4">
-                <summary class="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800">Optional Metadata</summary>
-                <div class="mt-4 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Broker Name</label>
-                        <input type="text" name="broker" placeholder="e.g., UBS, Barclays"
-                               class="w-full border rounded px-3 py-2">
+            <form method="post" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+                {% csrf_token %}
+                
+                <!-- Drag and Drop Zone -->
+                <div class="drop-zone" id="dropZone">
+                    <input type="file" name="pdf_file" accept=".pdf" required
+                           class="drop-zone-input" id="pdfFileInput">
+                    <div class="drop-zone-content">
+                        <i class="fas fa-file-pdf drop-zone-icon"></i>
+                        <p class="drop-zone-text">Drag and drop your PDF here or click to browse</p>
+                        <p class="drop-zone-hint">Maximum file size: 50MB</p>
                     </div>
+                    <div class="drop-zone-preview" id="filePreview"></div>
+                </div>
+                
+                <!-- Optional Metadata -->
+                <div class="metadata-section">
+                    <button type="button" class="metadata-toggle" id="metadataToggle">
+                        <i class="fas fa-chevron-right toggle-icon"></i>
+                        <span>Advanced Options (Optional)</span>
+                    </button>
                     
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Ticker Symbol</label>
-                        <input type="text" name="ticker" placeholder="e.g., NVDA, AAPL"
-                               class="w-full border rounded px-3 py-2">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium mb-2">Report Date</label>
-                        <input type="date" name="report_date"
-                               class="w-full border rounded px-3 py-2">
+                    <div class="metadata-fields" id="metadataFields">
+                        <p class="metadata-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Leave blank for automatic extraction from PDF content
+                        </p>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Broker Name</label>
+                                <input type="text" name="broker" 
+                                       placeholder="e.g., Goldman Sachs, UBS, Morgan Stanley"
+                                       class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Ticker Symbol</label>
+                                <input type="text" name="ticker" 
+                                       placeholder="e.g., NVDA, AAPL, MSFT"
+                                       class="form-input" style="text-transform: uppercase;">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Report Date</label>
+                                <input type="date" name="report_date" class="form-input">
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </details>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-lg upload-btn" id="uploadButton">
+                    <i class="fas fa-upload"></i>
+                    <span id="uploadButtonText">Upload and Process</span>
+                    <span class="spinner" id="uploadSpinner" style="display: none;"></span>
+                </button>
+            </form>
+        </div>
+        
+        <!-- Documents List -->
+        <div class="card mt-6">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-folder-open"></i>
+                    Uploaded Documents
+                </h2>
+                <div class="card-actions">
+                    <button class="btn btn-ghost btn-sm" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
             
-            <button type="submit" id="uploadButton" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-all duration-200 flex items-center">
-                <span id="uploadButtonText">Upload and Process</span>
-                <svg id="uploadSpinner" class="hidden animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            </button>
-        </form>
-    </div>
-    
-    <!-- Documents List -->
-    <div class="mt-8 bg-white rounded-lg shadow p-6">
-        <h3 class="text-xl font-bold mb-4">Uploaded Documents</h3>
-        <div class="space-y-3">
-            {% for doc in documents %}
-            <div class="border rounded p-4 flex justify-between items-center">
-                <div class="flex-1">
-                    <p class="font-medium">
-                        {% if doc.broker %}{{ doc.broker }}{% else %}Unknown Broker{% endif %}
-                        {% if doc.ticker %} - {{ doc.ticker }}{% endif %}
-                    </p>
-                    <p class="text-sm text-gray-600">
-                        {% if doc.report_date %}{{ doc.report_date }} | {% endif %}
-                        {% if doc.processed %}
-                            <span class="text-green-600">✓ Processed</span>
-                            {% if doc.total_chunks %}
-                                <span class="text-gray-500 ml-2">
-                                    ({{ doc.total_chunks }} chunks, {{ doc.total_tables }} tables, {{ doc.total_images }} images)
+            <div class="documents-list">
+                {% for doc in documents %}
+                <div class="document-item {% if doc.processed %}processed{% else %}processing{% endif %}">
+                    <div class="document-icon">
+                        <i class="fas fa-file-pdf"></i>
+                    </div>
+                    
+                    <div class="document-details">
+                        <div class="document-header">
+                            <h3 class="document-title">
+                                {% if doc.broker %}{{ doc.broker }}{% else %}Unknown Broker{% endif %}
+                                {% if doc.ticker %}- {{ doc.ticker }}{% endif %}
+                            </h3>
+                            {% if doc.processed %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Processed
+                                </span>
+                            {% else %}
+                                <span class="badge badge-warning">
+                                    <span class="spinner spinner-sm"></span>
+                                    Processing
                                 </span>
                             {% endif %}
-                        {% else %}
-                            <span class="text-yellow-600 flex items-center">
-                                <svg class="animate-spin mr-1 h-4 w-4 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Processing...
-                            </span>
+                        </div>
+                        
+                        <div class="document-meta">
+                            {% if doc.report_date %}
+                                <span><i class="fas fa-calendar-alt"></i> {{ doc.report_date }}</span>
+                            {% endif %}
+                            <span><i class="fas fa-clock"></i> {{ doc.created_at|date:"Y-m-d H:i" }}</span>
+                            {% if doc.processed and doc.total_chunks %}
+                                <span><i class="fas fa-cube"></i> {{ doc.total_chunks }} chunks</span>
+                                {% if doc.total_tables > 0 %}
+                                    <span><i class="fas fa-table"></i> {{ doc.total_tables }} tables</span>
+                                {% endif %}
+                                {% if doc.total_images > 0 %}
+                                    <span><i class="fas fa-image"></i> {{ doc.total_images }} images</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        
+                        {% if doc.processing_error %}
+                        <div class="document-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {{ doc.processing_error }}
+                        </div>
                         {% endif %}
-                    </p>
-                    <p class="text-xs text-gray-500 mt-1">
-                        File: {{ doc.file.name|slice:"5:" }} | Uploaded: {{ doc.created_at|date:"Y-m-d H:i" }}
-                    </p>
-                    {% if doc.processing_error %}
-                    <p class="text-sm text-red-600 mt-1">Error: {{ doc.processing_error }}</p>
-                    {% endif %}
+                    </div>
+                    
+                    <div class="document-actions">
+                        <button class="btn btn-ghost btn-sm" title="View details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-ghost btn-sm" title="Download">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
                 </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-folder-open empty-state-icon"></i>
+                    <h3 class="empty-state-title">No documents uploaded yet</h3>
+                    <p class="empty-state-text">Upload your first broker research PDF to get started</p>
+                </div>
+                {% endfor %}
             </div>
-            {% empty %}
-            <p class="text-gray-500 text-center py-8">No documents uploaded yet</p>
-            {% endfor %}
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-// Toast notification function
-function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    
-    // Set colors based on type
-    const colors = {
-        'success': 'bg-green-500',
-        'error': 'bg-red-500',
-        'warning': 'bg-yellow-500',
-        'info': 'bg-blue-500'
-    };
-    
-    toast.className = `${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-500 translate-x-full`;
-    toast.innerHTML = `
-        <div class="flex items-center">
-            <span class="text-sm font-medium">${message}</span>
-        </div>
-    `;
-    
-    toastContainer.appendChild(toast);
-    
-    // Animate in
-    setTimeout(() => {
-        toast.classList.remove('translate-x-full');
-    }, 10);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        toast.classList.add('translate-x-full');
-        setTimeout(() => toast.remove(), 500);
-    }, 5000);
+// File handling
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('pdfFileInput');
+const filePreview = document.getElementById('filePreview');
+const uploadForm = document.getElementById('uploadForm');
+const metadataToggle = document.getElementById('metadataToggle');
+const metadataFields = document.getElementById('metadataFields');
+
+// Metadata toggle
+metadataToggle.addEventListener('click', function() {
+    metadataFields.classList.toggle('active');
+    this.classList.toggle('active');
+    const icon = this.querySelector('.toggle-icon');
+    icon.classList.toggle('fa-chevron-right');
+    icon.classList.toggle('fa-chevron-down');
+});
+
+// Drag and drop events
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
 }
 
-// Progress bar animation
-function animateProgressBar() {
-    const uploadProgress = document.getElementById('uploadProgress');
-    const progressBar = document.getElementById('progressBar');
-    
-    uploadProgress.classList.remove('hidden');
-    
-    // Simulate progress stages
-    setTimeout(() => progressBar.style.width = '20%', 100);
-    setTimeout(() => progressBar.style.width = '40%', 1000);
-    setTimeout(() => progressBar.style.width = '60%', 2000);
-    setTimeout(() => progressBar.style.width = '80%', 3500);
-    setTimeout(() => progressBar.style.width = '95%', 5000);
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    dropZone.classList.add('drag-over');
 }
 
-// Form submission handler
-document.getElementById('uploadForm').addEventListener('submit', function(e) {
-    const uploadButton = document.getElementById('uploadButton');
-    const uploadButtonText = document.getElementById('uploadButtonText');
-    const uploadSpinner = document.getElementById('uploadSpinner');
-    const fileInput = document.getElementById('pdfFileInput');
+function unhighlight(e) {
+    dropZone.classList.remove('drag-over');
+}
+
+// Drop files
+dropZone.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleFiles(files);
+}
+
+// Click to select
+dropZone.addEventListener('click', () => fileInput.click());
+
+// File input change
+fileInput.addEventListener('change', function(e) {
+    handleFiles(this.files);
+});
+
+function handleFiles(files) {
+    if (files.length === 0) return;
     
-    if (!fileInput.files || fileInput.files.length === 0) {
-        e.preventDefault();
-        showToast('Please select a PDF file to upload', 'error');
+    const file = files[0];
+    
+    // Validate file type
+    if (!file.type.includes('pdf')) {
+        showNotification('Please select a valid PDF file', 'error');
         return;
     }
     
-    // Get file info before disabling anything
-    const fileName = fileInput.files[0].name;
-    const fileSize = (fileInput.files[0].size / 1024 / 1024).toFixed(2); // MB
-    
-    // Disable button and show spinner
-    uploadButton.disabled = true;
-    uploadButton.classList.add('opacity-75', 'cursor-not-allowed');
-    uploadButtonText.textContent = 'Processing...';
-    uploadSpinner.classList.remove('hidden');
-    
-    // Disable all form inputs except CSRF token and file input
-    // We need to keep file input enabled so it gets submitted
-    const formInputs = document.querySelectorAll('#uploadForm input:not([name="csrfmiddlewaretoken"]):not([name="pdf_file"]), #uploadForm button');
-    formInputs.forEach(input => input.disabled = true);
-    
-    // Make file input readonly instead of disabled
-    fileInput.readOnly = true;
-    fileInput.style.pointerEvents = 'none';
-    fileInput.style.opacity = '0.75';
-    
-    // Show progress bar
-    animateProgressBar();
-    
-    // Show processing toast
-    showToast(`Uploading ${fileName} (${fileSize} MB)...`, 'info');
-    
-    // Show additional toasts for processing stages
-    setTimeout(() => {
-        showToast('Extracting metadata from PDF...', 'info');
-    }, 1000);
-    
-    setTimeout(() => {
-        showToast('Processing document content...', 'info');
-    }, 3000);
-    
-    setTimeout(() => {
-        showToast('Creating vector embeddings...', 'info');
-    }, 5000);
-    
-    // Form will submit naturally after this function completes
-});
-
-// File input validation
-document.getElementById('pdfFileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-        // Check file type
-        if (!file.type.includes('pdf')) {
-            showToast('Please select a valid PDF file', 'error');
-            e.target.value = '';
-            return;
-        }
-        
-        // Check file size (limit to 50MB)
-        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
-        if (file.size > maxSize) {
-            showToast('File size exceeds 50MB limit', 'error');
-            e.target.value = '';
-            return;
-        }
-        
-        // Show file info
-        const fileSize = (file.size / 1024 / 1024).toFixed(2);
-        showToast(`Selected: ${file.name} (${fileSize} MB)`, 'success');
+    // Validate file size (50MB max)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+        showNotification('File size exceeds 50MB limit', 'error');
+        return;
     }
+    
+    // Show preview
+    showFilePreview(file);
+}
+
+function showFilePreview(file) {
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    filePreview.innerHTML = `
+        <div class="file-preview-content">
+            <i class="fas fa-file-pdf file-preview-icon"></i>
+            <div class="file-preview-info">
+                <div class="file-preview-name">${file.name}</div>
+                <div class="file-preview-size">${fileSize} MB</div>
+            </div>
+            <button type="button" class="file-preview-remove" onclick="clearFileSelection()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    filePreview.style.display = 'block';
+    dropZone.querySelector('.drop-zone-content').style.display = 'none';
+}
+
+function clearFileSelection() {
+    fileInput.value = '';
+    filePreview.innerHTML = '';
+    filePreview.style.display = 'none';
+    dropZone.querySelector('.drop-zone-content').style.display = 'flex';
+}
+
+// Form submission
+uploadForm.addEventListener('submit', function(e) {
+    const uploadButton = document.getElementById('uploadButton');
+    const uploadButtonText = document.getElementById('uploadButtonText');
+    const uploadSpinner = document.getElementById('uploadSpinner');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        e.preventDefault();
+        showNotification('Please select a PDF file to upload', 'error');
+        return;
+    }
+    
+    // Disable button and show loading
+    uploadButton.disabled = true;
+    uploadButton.classList.add('loading');
+    uploadButtonText.textContent = 'Processing...';
+    uploadSpinner.style.display = 'inline-block';
+    
+    // Show progress notification
+    showNotification('Uploading document...', 'info');
 });
 
-// Auto-refresh page after a delay if processing
-const isProcessing = document.querySelector('.text-yellow-600');
-if (isProcessing) {
+// Notifications
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${getNotificationIcon(type)}"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Auto remove
     setTimeout(() => {
-        window.location.reload();
-    }, 10000); // Refresh every 10 seconds while processing
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'success': 'check-circle',
+        'error': 'exclamation-circle',
+        'warning': 'exclamation-triangle',
+        'info': 'info-circle'
+    };
+    return icons[type] || 'info-circle';
+}
+
+// Auto-refresh for processing documents
+const processingDocs = document.querySelectorAll('.document-item.processing');
+if (processingDocs.length > 0) {
+    setTimeout(() => {
+        location.reload();
+    }, 10000);
 }
 </script>
 {% endblock %}
