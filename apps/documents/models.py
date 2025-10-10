@@ -15,6 +15,9 @@ class BrokerDocument(models.Model):
     report_date = models.DateField(blank=True, null=True)
     title = models.CharField(max_length=500, blank=True)
     
+    # File hash for duplicate detection
+    file_hash = models.CharField(max_length=64, unique=True, help_text="SHA256 hash of the file content", blank=True, null=True)
+    
     # Processing status
     processed = models.BooleanField(default=False)
     processing_error = models.TextField(blank=True)

@@ -5,9 +5,18 @@ from .models import BrokerDocument
 from apps.chat.document_processor import MultimodalDocumentProcessor
 from apps.chat.metadata_extractor import MetadataExtractor
 import os
+import hashlib
 import logging
 
 logger = logging.getLogger(__name__)
+
+def calculate_file_hash(file):
+    """Calculate SHA256 hash of uploaded file"""
+    hasher = hashlib.sha256()
+    for chunk in file.chunks():
+        hasher.update(chunk)
+    return hasher.hexdigest()
+
 
 def upload_document(request):
     """Upload and process PDF"""
@@ -21,12 +30,25 @@ def upload_document(request):
             messages.error(request, "PDF file is required")
             return redirect('documents:upload')
         
+        # Calculate file hash to check for duplicates
+        file_hash = calculate_file_hash(pdf_file)
+        pdf_file.seek(0)  # Reset file pointer after reading
+        
+        # Check for existing document with same hash
+        existing_doc = BrokerDocument.objects.filter(file_hash=file_hash).first()
+        if existing_doc:
+            messages.warning(request, 
+                f"This document has already been uploaded: {existing_doc.broker} - {existing_doc.ticker} ({existing_doc.report_date}). "
+                f"Original filename: {os.path.basename(existing_doc.file.name)}")
+            return redirect('documents:upload')
+        
         # Save the file temporarily to extract metadata
         doc = BrokerDocument.objects.create(
             file=pdf_file,
             broker=None,  # Will be filled by metadata extraction
             ticker=None,
             report_date=None,
+            file_hash=file_hash,  # Save the hash
         )
         
         # Extract metadata if not provided
@@ -60,6 +82,20 @@ def upload_document(request):
                 doc.report_date = report_date
                 doc.save()
         
+        # Check for similar documents (same broker, ticker, date)
+        similar_docs = BrokerDocument.objects.filter(
+            broker=doc.broker,
+            ticker=doc.ticker,
+            report_date=doc.report_date
+        ).exclude(id=doc.id)
+        
+        if similar_docs.exists():
+            similar_doc = similar_docs.first()
+            messages.warning(request, 
+                f"A similar document already exists: {similar_doc.broker} - {similar_doc.ticker} ({similar_doc.report_date}). "
+                f"Uploaded on: {similar_doc.created_at.strftime('%Y-%m-%d %H:%M')}. "
+                "Processing anyway in case it contains different content.")
+        
         try:
             # Process document
             processor = MultimodalDocumentProcessor()
@@ -74,6 +110,12 @@ def upload_document(request):
             doc.save()
             
             messages.success(request, f"Document processed successfully! Created {stats.get('total_nodes', 0)} nodes.")
+            
+            # Update document statistics
+            doc.total_chunks = stats.get('text_chunks', 0)
+            doc.total_tables = stats.get('tables', 0)
+            doc.total_images = stats.get('images', 0)
+            doc.save()
             
         except Exception as e:
             doc.processing_error = str(e)
