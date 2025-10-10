@@ -10,4 +10,5 @@ urlpatterns = [
     path('conversation/<uuid:conversation_id>/messages/', views.get_messages, name='get_messages'),
     path('<uuid:conversation_id>/', views.chat_detail, name='detail'),
     path('message/', views.chat_message, name='message'),
+    path('artifact/<str:node_id>/', views.get_artifact, name='get_artifact'),
 ]

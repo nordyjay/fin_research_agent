@@ -182,9 +182,15 @@ function addMessage(role, content, isLoading = false, sources = null) {
                 <div class="mt-4 pt-4 border-t border-gray-300">
                     <p class="text-sm font-semibold text-gray-800 mb-3">📄 Sources Referenced:</p>
                     <div class="grid grid-cols-1 gap-2">
-                        ${sources.map((s, idx) => `
+                        ${sources.map((s, idx) => {
+                            // Store source data in a data attribute instead of inline onclick
+                            const sourceId = `source-${Date.now()}-${idx}`;
+                            // Store the source data globally
+                            window[sourceId] = s;
+                            
+                            return `
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
-                                 onclick="showSourceDetail('${escapeHtml(JSON.stringify(s))}')">
+                                 onclick="showSourceDetailById('${sourceId}')">
                                 <div class="flex items-start justify-between">
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2 mb-1">
@@ -212,7 +218,7 @@ function addMessage(role, content, isLoading = false, sources = null) {
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             `;
@@ -362,18 +368,320 @@ function formatDate(dateString) {
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
 }
-// Function to show source details (can be expanded later)
-function showSourceDetail(sourceJson) {
+// Modal HTML
+const artifactModal = `
+<div id="artifactModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black bg-opacity-75" onclick="closeArtifactModal()"></div>
+    <div class="absolute inset-4 md:inset-8 bg-white rounded-lg shadow-2xl flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b">
+            <h3 id="artifactTitle" class="text-lg font-semibold"></h3>
+            <button onclick="closeArtifactModal()" class="text-gray-500 hover:text-gray-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="artifactContent" class="flex-1 overflow-auto p-4">
+            <div class="flex items-center justify-center h-full">
+                <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="flex items-center justify-between p-4 border-t">
+            <div id="artifactMetadata" class="text-sm text-gray-600"></div>
+            <div class="flex gap-2">
+                <button id="prevArtifact" onclick="navigateArtifact(-1)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50">
+                    Previous
+                </button>
+                <button id="nextArtifact" onclick="navigateArtifact(1)" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50">
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+
+// Add modal to page
+document.body.insertAdjacentHTML('beforeend', artifactModal);
+
+let currentSources = [];
+let currentSourceIndex = 0;
+
+// Function to show artifact details by ID
+function showSourceDetailById(sourceId) {
     try {
-        const source = JSON.parse(sourceJson);
-        console.log('Source detail:', source);
+        const source = window[sourceId];
+        if (!source) {
+            throw new Error('Source data not found');
+        }
         
-        // For now, just log. Later can show modal with full content
-        alert(`Source: ${source.broker} - ${source.ticker}\nPage: ${source.page_number}\nType: ${source.content_type}\n\nClick OK to close.`);
+        // Find this source in the current sources array
+        currentSourceIndex = currentSources.findIndex(s => 
+            s.node_id === source.node_id || 
+            (s.broker === source.broker && s.page_number === source.page_number && s.content_type === source.content_type)
+        );
+        if (currentSourceIndex === -1) {
+            currentSourceIndex = 0;
+        }
+        
+        displayArtifact(source);
     } catch (error) {
         console.error('Error showing source detail:', error);
+        alert('Error loading artifact: ' + error.message);
     }
 }
+
+// Legacy function for backward compatibility
+async function showSourceDetail(sourceJson) {
+    try {
+        const source = JSON.parse(sourceJson);
+        
+        // Find this source in the current sources array
+        currentSourceIndex = currentSources.findIndex(s => s.node_id === source.node_id);
+        if (currentSourceIndex === -1) {
+            currentSourceIndex = 0;
+        }
+        
+        await displayArtifact(source);
+    } catch (error) {
+        console.error('Error showing source detail:', error);
+        alert('Error loading artifact: ' + error.message);
+    }
+}
+
+async function displayArtifact(source) {
+    const modal = document.getElementById('artifactModal');
+    const title = document.getElementById('artifactTitle');
+    const content = document.getElementById('artifactContent');
+    const metadata = document.getElementById('artifactMetadata');
+    
+    // Show modal
+    modal.classList.remove('hidden');
+    
+    // Set title
+    title.textContent = `${source.broker} - ${source.ticker || 'N/A'} (${source.content_type})`;
+    
+    // Set metadata
+    metadata.textContent = `Page ${source.page_number || 'N/A'} • ${source.report_date || 'N/A'}`;
+    
+    try {
+        // Check if we have the content embedded in the source
+        if (source.full_text && source.content_type !== 'image') {
+            // We have the content, display it directly without fetching
+            if (source.content_type === 'table') {
+                // For tables, check if we have a valid summary, otherwise show the preview
+                const text = source.full_text || '';
+                let displayContent = '';
+                
+                // Check if this is a processed table with a REAL summary (not the error message)
+                const summaryMatch = text.match(/TABLE SUMMARY:\s*(.+?)(?=RAW TABLE DATA:|$)/s);
+                const summary = summaryMatch ? summaryMatch[1].trim() : '';
+                
+                // Check if it's a real summary or the generic error message
+                if (summary && !summary.includes('It seems that the financial table') && !summary.includes('missing')) {
+                    // We have a real summary
+                    displayContent = `
+                        <div class="space-y-4">
+                            <div class="p-6 bg-blue-50 rounded-lg">
+                                <div class="flex items-start space-x-3">
+                                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900 mb-2">Table Summary</h4>
+                                        <p class="text-gray-700 leading-relaxed">${escapeHtml(summary)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // No valid summary, show the text preview instead
+                    const preview = source.text_preview || source.full_text || 'Table data';
+                    displayContent = `
+                        <div class="p-6 bg-gray-50 rounded-lg">
+                            <div class="flex items-start space-x-3">
+                                <svg class="w-6 h-6 text-gray-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <h4 class="font-semibold text-gray-900 mb-3">Table Content</h4>
+                                    <div class="text-sm text-gray-700 font-mono whitespace-pre-wrap bg-white p-4 rounded border border-gray-200">
+${escapeHtml(preview)}
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-3 text-center">Full table rendering is being improved</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                content.innerHTML = `<div class="max-w-2xl mx-auto">${displayContent}</div>`;
+            } else {
+                // Text content - format it better
+                const text = source.full_text;
+                let formattedContent = '';
+                
+                // Check if it's structured content with clear sections
+                const lines = text.split('\n');
+                const formattedLines = [];
+                
+                for (const line of lines) {
+                    const trimmedLine = line.trim();
+                    if (trimmedLine) {
+                        // Detect headers (lines that are all caps or end with colon)
+                        if (trimmedLine.match(/^[A-Z\s]+:?$/) || trimmedLine.endsWith(':')) {
+                            formattedLines.push(`<strong>${escapeHtml(trimmedLine)}</strong>`);
+                        } else {
+                            formattedLines.push(escapeHtml(line));
+                        }
+                    } else {
+                        formattedLines.push('');
+                    }
+                }
+                
+                content.innerHTML = `
+                    <div class="prose max-w-none">
+                        <div class="text-sm leading-relaxed whitespace-pre-wrap font-mono bg-gray-50 p-6 rounded-lg overflow-auto">
+${formattedLines.join('\n')}
+                        </div>
+                    </div>
+                `;
+            }
+        } else if (source.content_type === 'image' && source.image_path) {
+            // For images, we need to use the image path from the server
+            content.innerHTML = `
+                <div class="flex items-center justify-center h-full">
+                    <img src="${source.image_path}" 
+                         alt="${source.broker} - ${source.ticker}" 
+                         class="max-w-full max-h-full object-contain cursor-zoom-in"
+                         onclick="toggleImageZoom(this)"
+                         onerror="this.onerror=null; this.src='/static/placeholder.png'; this.alt='Image not found'">
+                </div>
+            `;
+        } else {
+            // Fallback: show what we have
+            content.innerHTML = `
+                <div class="prose max-w-none">
+                    <p class="text-sm text-gray-600 mb-2">
+                        Content type: ${source.content_type}<br>
+                        Source: ${source.broker} - ${source.ticker}
+                    </p>
+                    <pre class="whitespace-pre-wrap bg-gray-50 p-4 rounded">${escapeHtml(source.text_preview || 'No preview available')}</pre>
+                </div>
+            `;
+        }
+        
+        // Update navigation buttons
+        updateNavigationButtons();
+        
+    } catch (error) {
+        content.innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <div class="text-center">
+                    <svg class="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Error loading artifact</h3>
+                    <p class="mt-1 text-sm text-gray-500">${error.message}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function closeArtifactModal() {
+    document.getElementById('artifactModal').classList.add('hidden');
+}
+
+function toggleImageZoom(img) {
+    img.classList.toggle('cursor-zoom-out');
+    img.classList.toggle('cursor-zoom-in');
+    img.classList.toggle('max-w-full');
+    img.classList.toggle('w-auto');
+}
+
+function convertMarkdownTableToHtml(markdownTable) {
+    const lines = markdownTable.split('\n').filter(line => line.trim() && line.includes('|'));
+    if (lines.length < 2) return '<p>Invalid table format</p>';
+    
+    // Find separator line (contains dashes)
+    let separatorIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('---') || lines[i].includes('—')) {
+            separatorIndex = i;
+            break;
+        }
+    }
+    
+    // If no separator found, assume first line is header
+    const headerIndex = separatorIndex > 0 ? separatorIndex - 1 : 0;
+    const dataStartIndex = separatorIndex >= 0 ? separatorIndex + 1 : 1;
+    
+    let html = '<table class="min-w-full divide-y divide-gray-200 text-sm">';
+    
+    // Process header
+    if (headerIndex >= 0 && headerIndex < lines.length) {
+        const headers = lines[headerIndex].split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+        html += '<thead class="bg-gray-50"><tr>';
+        headers.forEach(header => {
+            html += `<th class="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">${escapeHtml(header)}</th>`;
+        });
+        html += '</tr></thead>';
+    }
+    
+    // Process body
+    html += '<tbody class="bg-white divide-y divide-gray-200">';
+    for (let i = dataStartIndex; i < lines.length; i++) {
+        if (lines[i].includes('---')) continue; // Skip any separator lines
+        
+        const cells = lines[i].split('|').map(cell => cell.trim());
+        // Remove empty cells from start and end (markdown tables often have empty cells due to leading/trailing |)
+        while (cells.length > 0 && cells[0] === '') cells.shift();
+        while (cells.length > 0 && cells[cells.length - 1] === '') cells.pop();
+        
+        if (cells.length > 0) {
+            html += '<tr class="hover:bg-gray-50">';
+            cells.forEach(cell => {
+                // Remove excessive whitespace and make content more readable
+                const cleanCell = cell.replace(/\s+/g, ' ').trim();
+                html += `<td class="px-3 py-2 text-sm text-gray-900">${escapeHtml(cleanCell)}</td>`;
+            });
+            html += '</tr>';
+        }
+    }
+    html += '</tbody></table>';
+    
+    return html;
+}
+
+function navigateArtifact(direction) {
+    const newIndex = currentSourceIndex + direction;
+    if (newIndex >= 0 && newIndex < currentSources.length) {
+        currentSourceIndex = newIndex;
+        displayArtifact(currentSources[newIndex]);
+    }
+}
+
+function updateNavigationButtons() {
+    const prevBtn = document.getElementById('prevArtifact');
+    const nextBtn = document.getElementById('nextArtifact');
+    
+    prevBtn.disabled = currentSourceIndex === 0;
+    nextBtn.disabled = currentSourceIndex === currentSources.length - 1;
+}
+
+// Update the sources when a new message is received
+const originalAddMessage = addMessage;
+addMessage = function(role, content, isLoading = false, sources = null) {
+    if (sources && sources.length > 0) {
+        currentSources = sources;
+    }
+    return originalAddMessage(role, content, isLoading, sources);
+};
 
 // Add custom CSS for line-clamp
 const style = document.createElement('style');
