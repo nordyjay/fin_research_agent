@@ -326,9 +326,10 @@ function createSourcesDisplay(sources) {
     const sourcesList = document.createElement('div');
     sourcesList.className = 'sources-list';
     
-    sources.forEach(source => {
+    sources.forEach((source, index) => {
         const sourceItem = document.createElement('div');
         sourceItem.className = 'source-item';
+        sourceItem.onclick = () => showSourceModal(source);
         
         const sourceInfo = document.createElement('div');
         sourceInfo.className = 'source-info';
@@ -349,6 +350,86 @@ function createSourcesDisplay(sources) {
     
     sourcesDiv.appendChild(sourcesList);
     return sourcesDiv;
+}
+
+// Show source modal
+function showSourceModal(source) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('sourceModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'sourceModal';
+        modal.className = 'source-modal';
+        modal.innerHTML = `
+            <div class="source-modal-content">
+                <div class="source-modal-header">
+                    <h2 class="source-modal-title">
+                        <i class="fas fa-file-pdf"></i>
+                        <span id="modalTitle">Document Source</span>
+                    </h2>
+                    <button class="source-modal-close" onclick="closeSourceModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="source-modal-body">
+                    <div class="source-modal-metadata" id="modalMetadata"></div>
+                    <div class="source-modal-text" id="modalText"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeSourceModal();
+            }
+        });
+    }
+    
+    // Update modal content
+    document.getElementById('modalTitle').textContent = `${source.broker || 'Document'} - ${source.ticker || 'Research'}`;
+    
+    const metadata = document.getElementById('modalMetadata');
+    metadata.innerHTML = `
+        ${source.broker ? `
+            <div class="source-modal-metadata-item">
+                <span class="source-modal-metadata-label">Broker</span>
+                <span class="source-modal-metadata-value">${source.broker}</span>
+            </div>
+        ` : ''}
+        ${source.ticker ? `
+            <div class="source-modal-metadata-item">
+                <span class="source-modal-metadata-label">Ticker</span>
+                <span class="source-modal-metadata-value">${source.ticker}</span>
+            </div>
+        ` : ''}
+        ${source.page_number ? `
+            <div class="source-modal-metadata-item">
+                <span class="source-modal-metadata-label">Page Number</span>
+                <span class="source-modal-metadata-value">${source.page_number}</span>
+            </div>
+        ` : ''}
+        ${source.chunk_id ? `
+            <div class="source-modal-metadata-item">
+                <span class="source-modal-metadata-label">Chunk ID</span>
+                <span class="source-modal-metadata-value">${source.chunk_id}</span>
+            </div>
+        ` : ''}
+    `;
+    
+    document.getElementById('modalText').textContent = source.text || source.text_preview || 'No content available';
+    
+    // Show modal
+    modal.classList.add('active');
+}
+
+// Close source modal
+function closeSourceModal() {
+    const modal = document.getElementById('sourceModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 // Add loading message
@@ -566,5 +647,12 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Add keyboard shortcut for ESC to close modal
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeSourceModal();
+    }
+});
 </script>
 {% endblock %}
