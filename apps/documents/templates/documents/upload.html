@@ -167,12 +167,17 @@
                     </div>
                     
                     <div class="document-actions">
-                        <button class="btn btn-ghost btn-sm" title="View details">
+                        <a href="{% url 'documents:view' doc.id %}" 
+                           class="btn btn-ghost btn-sm" 
+                           title="View PDF"
+                           target="_blank">
                             <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-ghost btn-sm" title="Download">
+                        </a>
+                        <a href="{% url 'documents:download' doc.id %}" 
+                           class="btn btn-ghost btn-sm" 
+                           title="Download PDF">
                             <i class="fas fa-download"></i>
-                        </button>
+                        </a>
                     </div>
                 </div>
                 {% empty %}

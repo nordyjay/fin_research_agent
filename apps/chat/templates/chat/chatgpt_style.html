@@ -354,6 +354,11 @@ function createSourcesDisplay(sources) {
 
 // Show source modal
 function showSourceModal(source) {
+    console.log('Opening source modal with:', source);
+    console.log('Source metadata:', source.metadata);
+    console.log('Document ID at top level:', source.document_id);
+    console.log('Document ID in metadata:', source.metadata ? source.metadata.document_id : 'No metadata');
+    
     // Create modal if it doesn't exist
     let modal = document.getElementById('sourceModal');
     if (!modal) {
@@ -373,6 +378,7 @@ function showSourceModal(source) {
                 </div>
                 <div class="source-modal-body">
                     <div class="source-modal-metadata" id="modalMetadata"></div>
+                    <div class="source-modal-actions" id="modalActions"></div>
                     <div class="source-modal-text" id="modalText"></div>
                 </div>
             </div>
@@ -418,7 +424,32 @@ function showSourceModal(source) {
         ` : ''}
     `;
     
-    document.getElementById('modalText').textContent = source.text || source.text_preview || 'No content available';
+    // Add action buttons if document ID is available
+    const actionsDiv = document.getElementById('modalActions');
+    // Check for document_id in multiple places
+    const docId = source.document_id || (source.metadata && source.metadata.document_id);
+    
+    if (docId) {
+        actionsDiv.innerHTML = `
+            <div class="source-action-buttons">
+                <a href="/documents/view/${docId}/" 
+                   class="btn btn-primary btn-sm" 
+                   target="_blank">
+                    <i class="fas fa-eye"></i>
+                    View Original PDF
+                </a>
+                <a href="/documents/download/${docId}/" 
+                   class="btn btn-secondary btn-sm">
+                    <i class="fas fa-download"></i>
+                    Download PDF
+                </a>
+            </div>
+        `;
+    } else {
+        actionsDiv.innerHTML = '<p class="text-muted">Document reference not available - this document may need to be re-processed.</p>';
+    }
+    
+    document.getElementById('modalText').textContent = source.full_text || source.text || source.text_preview || 'No content available';
     
     // Show modal
     modal.classList.add('active');

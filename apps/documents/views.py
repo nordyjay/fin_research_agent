@@ -103,7 +103,8 @@ def upload_document(request):
                 pdf_path=doc.file.path,
                 broker=doc.broker,
                 ticker=doc.ticker,
-                report_date=doc.report_date
+                report_date=doc.report_date,
+                document_id=str(doc.id)  # Pass document ID for linking
             )
             
             doc.processed = True
@@ -128,3 +129,37 @@ def upload_document(request):
     return render(request, 'documents/upload.html', {
         'documents': documents
     })
+
+
+def view_document(request, document_id):
+    """View PDF document in browser"""
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    
+    doc = get_object_or_404(BrokerDocument, id=document_id)
+    
+    try:
+        with open(doc.file.path, 'rb') as pdf:
+            response = HttpResponse(pdf.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'inline; filename="{doc.get_display_name()}.pdf"'
+            return response
+    except FileNotFoundError:
+        messages.error(request, "PDF file not found")
+        return redirect('documents:upload')
+
+
+def download_document(request, document_id):
+    """Download PDF document"""
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    
+    doc = get_object_or_404(BrokerDocument, id=document_id)
+    
+    try:
+        with open(doc.file.path, 'rb') as pdf:
+            response = HttpResponse(pdf.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{doc.get_display_name()}.pdf"'
+            return response
+    except FileNotFoundError:
+        messages.error(request, "PDF file not found")
+        return redirect('documents:upload')

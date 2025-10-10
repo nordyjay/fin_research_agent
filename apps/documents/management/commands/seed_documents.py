@@ -137,7 +137,8 @@ class Command(BaseCommand):
                             pdf_path=doc.file.path,
                             broker=doc.broker,
                             ticker=doc.ticker,
-                            report_date=doc.report_date
+                            report_date=doc.report_date,
+                            document_id=str(doc.id)  # Add document ID for linking
                         )
                         
                         doc.processed = True

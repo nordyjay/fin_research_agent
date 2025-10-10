@@ -41,7 +41,7 @@ class MultimodalDocumentProcessor:
             logger.error(f"Error initializing document processor: {e}")
             raise
         
-    def process_pdf(self, pdf_path, broker, ticker, report_date):
+    def process_pdf(self, pdf_path, broker, ticker, report_date, document_id=None):
         """
         Main processing pipeline.
         
@@ -71,6 +71,7 @@ class MultimodalDocumentProcessor:
             'ticker': ticker if ticker else 'Unknown',
             'report_date': str(report_date) if report_date else '',
             'source_file': str(pdf_path),
+            'document_id': document_id if document_id else None,  # Add document ID for linking
         }
         
         # 1. Extract text

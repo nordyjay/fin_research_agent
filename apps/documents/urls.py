@@ -5,6 +5,6 @@ app_name = 'documents'
 
 urlpatterns = [
     path('upload/', views.upload_document, name='upload'),
-    path('view/<int:document_id>/', views.view_document, name='view'),
-    path('download/<int:document_id>/', views.download_document, name='download'),
+    path('view/<uuid:document_id>/', views.view_document, name='view'),
+    path('download/<uuid:document_id>/', views.download_document, name='download'),
 ]

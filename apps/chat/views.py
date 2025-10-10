@@ -250,10 +250,16 @@ def chat_message(request):
                 'content_type': node.metadata.get('content_type', 'text'),
                 'score': node.score if hasattr(node, 'score') else None,
                 'text_preview': node.text[:200] + "..." if len(node.text) > 200 else node.text,
-                # Store the full content directly in the source data
-                'full_text': node.text,
-                'metadata': node.metadata
+                'text': node.text,  # Include full text for modal display
+                'metadata': node.metadata,  # This should contain document_id if present
+                'document_id': node.metadata.get('document_id', None)  # Also expose at top level
             }
+            
+            # Debug logging to see if document_id is present
+            if node.metadata.get('document_id'):
+                logger.info(f"Source has document_id: {node.metadata.get('document_id')}")
+            else:
+                logger.info(f"Source missing document_id. Metadata keys: {list(node.metadata.keys())}")
             
             # Add image path if available
             if 'image_path' in node.metadata:

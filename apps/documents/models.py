@@ -39,3 +39,14 @@ class BrokerDocument(models.Model):
     
     def __str__(self):
         return f"{self.broker} - {self.ticker} ({self.report_date})"
+    
+    def get_display_name(self):
+        """Get a clean filename for display/download"""
+        parts = []
+        if self.broker:
+            parts.append(self.broker.replace(' ', '_'))
+        if self.ticker:
+            parts.append(self.ticker)
+        if self.report_date:
+            parts.append(self.report_date.strftime('%Y%m%d'))
+        return '_'.join(parts) if parts else f'document_{self.id}'
