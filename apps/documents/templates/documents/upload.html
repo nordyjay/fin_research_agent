@@ -143,8 +143,7 @@
                                 <span><i class="fas fa-calendar-alt"></i> {{ doc.report_date }}</span>
                             {% endif %}
                             <span><i class="fas fa-clock"></i> {{ doc.created_at|date:"Y-m-d H:i" }}</span>
-                            {% if doc.processed and doc.total_chunks %}
-                                <span><i class="fas fa-cube"></i> {{ doc.total_chunks }} chunks</span>
+                            {% if doc.processed %}
                                 {% if doc.total_tables > 0 %}
                                     <span><i class="fas fa-table"></i> {{ doc.total_tables }} tables</span>
                                 {% endif %}

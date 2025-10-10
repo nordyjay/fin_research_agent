@@ -449,7 +449,115 @@ function showSourceModal(source) {
         actionsDiv.innerHTML = '<p class="text-muted">Document reference not available - this document may need to be re-processed.</p>';
     }
     
-    document.getElementById('modalText').textContent = source.full_text || source.text || source.text_preview || 'No content available';
+    // Format and display the text with better readability
+    const textContent = source.full_text || source.text || source.text_preview || 'No content available';
+    const modalTextDiv = document.getElementById('modalText');
+    
+    // Enhanced text formatting function
+    function formatSourceText(text) {
+        // First, check if it looks like a table (has consistent delimiters)
+        const lines = text.split('\n');
+        const hasTableStructure = lines.some(line => 
+            (line.includes('|') && line.split('|').length > 2) ||
+            (line.includes('\t') && line.split('\t').length > 2)
+        );
+        
+        if (hasTableStructure) {
+            // Try to format as table
+            return formatAsTable(text);
+        }
+        
+        // Check for lists
+        const hasList = lines.some(line => 
+            /^[\s]*[-*•]\s/.test(line) || /^[\s]*\d+\.\s/.test(line)
+        );
+        
+        if (hasList) {
+            return formatWithLists(text);
+        }
+        
+        // Default paragraph formatting
+        return text
+            .split('\n\n')
+            .filter(para => para.trim())
+            .map(paragraph => {
+                // Check if it's a header (all caps or ends with colon)
+                if (paragraph.trim().match(/^[A-Z\s]+$/) || paragraph.trim().endsWith(':')) {
+                    return `<h4>${paragraph.trim()}</h4>`;
+                }
+                return `<p>${paragraph.replace(/\n/g, '<br>')}</p>`;
+            })
+            .join('');
+    }
+    
+    function formatAsTable(text) {
+        const lines = text.split('\n').filter(line => line.trim());
+        let html = '<div class="table-wrapper"><table>';
+        
+        lines.forEach((line, index) => {
+            const cells = line.includes('|') ? 
+                line.split('|').map(cell => cell.trim()).filter(cell => cell) :
+                line.split('\t').map(cell => cell.trim());
+            
+            if (cells.length > 1) {
+                html += '<tr>';
+                const tag = index === 0 ? 'th' : 'td';
+                cells.forEach(cell => {
+                    html += `<${tag}>${cell}</${tag}>`;
+                });
+                html += '</tr>';
+            } else {
+                // Single cell, treat as paragraph
+                html += `</table><p>${line}</p><table>`;
+            }
+        });
+        
+        html += '</table></div>';
+        return html.replace('<table></table>', '');
+    }
+    
+    function formatWithLists(text) {
+        let html = '';
+        const lines = text.split('\n');
+        let inList = false;
+        let listType = null;
+        
+        lines.forEach(line => {
+            const bulletMatch = line.match(/^[\s]*([-*•])\s+(.+)/);
+            const numberMatch = line.match(/^[\s]*(\d+)\.\s+(.+)/);
+            
+            if (bulletMatch) {
+                if (!inList || listType !== 'ul') {
+                    if (inList) html += `</${listType}>`;
+                    html += '<ul>';
+                    inList = true;
+                    listType = 'ul';
+                }
+                html += `<li>${bulletMatch[2]}</li>`;
+            } else if (numberMatch) {
+                if (!inList || listType !== 'ol') {
+                    if (inList) html += `</${listType}>`;
+                    html += '<ol>';
+                    inList = true;
+                    listType = 'ol';
+                }
+                html += `<li>${numberMatch[2]}</li>`;
+            } else {
+                if (inList) {
+                    html += `</${listType}>`;
+                    inList = false;
+                }
+                if (line.trim()) {
+                    html += `<p>${line}</p>`;
+                }
+            }
+        });
+        
+        if (inList) html += `</${listType}>`;
+        return html;
+    }
+    
+    modalTextDiv.innerHTML = formatSourceText(textContent);
     
     // Show modal
     modal.classList.add('active');

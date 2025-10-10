@@ -402,8 +402,83 @@
     font-size: var(--text-base);
     line-height: 1.8;
     color: var(--gray-800);
-    white-space: pre-wrap;
     word-wrap: break-word;
+    max-width: 100%;
+}
+
+.source-modal-text p {
+    margin: 0 0 var(--space-4) 0;
+    text-align: left;
+}
+
+.source-modal-text p:last-child {
+    margin-bottom: 0;
+}
+
+/* Handle table-like content */
+.source-modal-text table,
+.source-modal-text pre {
+    overflow-x: auto;
+    max-width: 100%;
+    margin: var(--space-4) 0;
+}
+
+.source-modal-text table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: var(--text-sm);
+}
+
+.source-modal-text td,
+.source-modal-text th {
+    border: 1px solid var(--gray-300);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+}
+
+.source-modal-text th {
+    background: var(--gray-100);
+    font-weight: var(--font-semibold);
+}
+
+/* Handle lists */
+.source-modal-text ul,
+.source-modal-text ol {
+    margin: var(--space-3) 0;
+    padding-left: var(--space-6);
+}
+
+.source-modal-text li {
+    margin-bottom: var(--space-2);
+}
+
+/* Handle code/numbers */
+.source-modal-text code {
+    background: var(--gray-100);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+}
+
+/* Table wrapper for horizontal scrolling */
+.source-modal-text .table-wrapper {
+    overflow-x: auto;
+    margin: var(--space-4) 0;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+}
+
+.source-modal-text h4 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    margin: var(--space-4) 0 var(--space-2) 0;
+    color: var(--mine-shaft);
+}
+
+/* Better spacing for dense content */
+.source-modal-text br + br {
+    display: none;
 }
 
 .source-modal-metadata {
