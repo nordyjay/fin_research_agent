@@ -136,7 +136,8 @@ class MetadataExtractor:
         
         # Extract ticker (common patterns: AAPL, NVDA, MSFT)
         # Skip common non-ticker patterns
-        ticker_match = re.search(r'\b(?!FY|Q\d|PDF|CFO|CEO|CTO)([A-Z]{2,5})\b', filename)  # Original case
+        # Extract ticker - look for 2-5 uppercase letters surrounded by separators
+        ticker_match = re.search(r'(?:^|[-_])(?!FY|Q\d|PDF|CFO|CEO|CTO)([A-Z]{2,5})(?=[-_]|\.|$)', filename)
         if ticker_match:
             metadata['ticker'] = ticker_match.group(1)
         
