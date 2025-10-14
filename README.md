@@ -1,14 +1,11 @@
 # Financial Research Agent
 
-A system that transforms broker research PDFs into an intelligent Q&A interface, allowing users to search across hundreds of financial documents using natural language questions.
+A system that transforms broker research PDFs into an Q&A interface, allowing users to search across hundreds of financial documents using natural language questions.
 
-## What This System Does
-
-Imagine having hundreds of broker research reports (Goldman Sachs, Morgan Stanley, Barclays, etc.) about companies like NVIDIA, Apple, or Microsoft. These PDFs contain valuable insights but finding specific information requires manually searching through each document. This system solves that problem.
 
 **Core Functionality:**
-1. **Uploads broker research PDFs** - The system ingests financial research documents from major investment banks
-2. **Extracts all content** - Text, tables, and images are pulled from PDFs and made searchable
+1. **Uploads broker research PDFs** - The system ingests financial research documents from a variety of sources
+2. **Extracts all content** - Text, tables, and images(planned) are pulled from PDFs and made searchable
 3. **Enables natural language search** - Ask "What is Goldman's price target for NVIDIA?" and get precise answers
 4. **Provides source attribution** - Every answer links back to the exact page in the original PDF
 
@@ -72,19 +69,16 @@ When you start the system:
 
 ### [RAG Implementation](docs/rag_implementation.md)
 **What it explains:** The search technology that powers question answering
-**Why read this:** Deep dive into how semantic search works without getting too technical
+**Why read this:** Deep dive into how semantic search works
 **Key insights:**
-- Why the system understands "revenue growth" vs "revenue growth concerns"
-- How 512-token chunks balance accuracy and performance
-- The sophisticated deduplication that prevents repetitive answers
-- Why we retrieve 15 results but only show 5-7
-- **Note: Formatting struggles affect how results are displayed to users**
+- Chunking strategy
+- The deduplication scheme that prevents repetitive answers
 
 ### [Strengths & Weaknesses](docs/strengths_weaknesses.md)
-**What it explains:** Honest assessment of what works well and what's broken
+**What it explains:** Assessment of what works well and what's broken
 **Why read this:** Understand limitations before using in production
 **Key insights:**
-- Image processing is completely broken (30% of content unsearchable)
+- Image processing is completely no functional.
 - No caching means unnecessary costs for repeated questions
 - Synchronous architecture limits to ~10 concurrent users
 - **Critical: Table and text formatting remains consistently weak throughout the system**
@@ -92,16 +86,15 @@ When you start the system:
 ## Key Features Explained
 
 ### 1. Multimodal Document Processing
-The system doesn't just extract text - it understands documents have three types of content:
 - **Text**: The narrative sections explaining analysis
 - **Tables**: Financial data, projections, and comparisons
 - **Images**: Charts and graphs (currently broken - these are extracted but not searchable)
 
-### 2. Intelligent Deduplication
-When searching, the same information often appears multiple times (executive summary, detailed analysis, conclusion). The system intelligently filters to show diverse perspectives rather than repetitive content.
+### 2. Strategic Deduplication
+When searching, the same information often appears multiple times (executive summary, detailed analysis, conclusion). The system filters to show diverse perspectives rather than repetitive content.
 
 ### 3. Source Attribution
-Every piece of information in an answer can be clicked to see the original source. This is critical for financial analysis where verification matters. Users see not just "Goldman says $950" but can click through to see the exact context.
+Every piece of information in an answer can be clicked to see the original source. This is critical for financial analysis where verification matters. Users see not just "Goldman says $950" but can click through to see the exact context as well as original source for validation.
 
 ### 4. Automatic Metadata Extraction
 Drop in a PDF named "20240115 - Goldman Sachs - NVDA - Initiating Coverage.pdf" and the system automatically understands:
@@ -112,22 +105,21 @@ Drop in a PDF named "20240115 - Goldman Sachs - NVDA - Initiating Coverage.pdf" 
 ## Current Limitations
 
 ### Critical Issues
-1. **Image Processing Broken** - Charts and graphs are extracted but not searchable due to an API error
+1. **Image Processing Broken** - Charts and graphs are extracted but not searchable.  This is planned functionality.
 2. **No User Authentication** - Anyone can access all documents (not suitable for confidential data)
 3. **Synchronous Processing** - Uploading documents blocks other operations
 4. **No Caching** - Asking the same question twice costs money each time
 
 ### Quality Issues
-1. **Table Formatting** - Tables display as continuous text strings, losing column structure essential for financial data
+1. **Table Formatting** - Tables display as summary as opposed to well formated table, losing column structure directly from source.
 2. **Text Formatting** - Multi-paragraph responses collapse into walls of text without proper breaks
-3. **No Progress Tracking** - The progress bar during upload is fake
-4. **Limited Scale** - System slows significantly beyond 100,000 text chunks
+3. **Limited Scale** - System slows significantly beyond 100,000 text chunks
 
 **Note on Formatting:** These display issues stem from the frontend rendering layer. Solutions include implementing proper markdown renderers or dedicated table components.
 
 ## Technology Stack
 
-The system uses modern, production-ready technologies:
+The system uses the following core stack:
 
 - **Django**: Web framework handling uploads, API endpoints, and user interface
 - **PostgreSQL + pgvector**: Database storing documents and enabling vector search
@@ -141,22 +133,21 @@ The system uses modern, production-ready technologies:
 Specialized vector databases like Pinecone are faster but require managing another service. PostgreSQL with pgvector is slower but keeps everything in one database - simpler operations, easier backups, lower complexity.
 
 ### Why 512 Token Chunks?
-Financial documents discuss complex topics. Too small (128 tokens) and you split concepts mid-thought. Too large (2048 tokens) and search becomes imprecise. 512 tokens typically captures 2-3 complete paragraphs - the sweet spot for financial analysis.
+Financial documents discuss complex topics. Too small (128 tokens) and you split concepts mid-thought. Too large (2048 tokens) and search becomes imprecise. 512 tokens typically captures 2-3 complete paragraphs - this is an area ripe for exploration and optimization.
 
-### Why Three-Stage Deduplication?
+### Why Multi-Stage Deduplication?
 Without deduplication, searching "NVIDIA price target" might return 5 chunks all saying "$950" from the same report. Our pipeline ensures diverse sources: different pages, different semantic content, different content types (text vs tables).
 
 ## For Product Managers and Business Users
 
-This system transforms static PDF libraries into dynamic knowledge bases. Instead of manually searching through documents, users can ask natural questions and get sourced answers in seconds.
+This system transforms static PDF libraries into dynamic knowledge bases. Instead of manually searching through documents, users can ask natural questions and get sourced answers quickly.
 
 **Business Value:**
 - Reduces research time from hours to seconds
-- Ensures no insights are missed across large document sets
-- Provides audit trail with source attribution
+- Potentially ensures no insights are missed across large document sets
 - Scales to thousands of documents
 
-**Ready for Production?** Not quite. The system needs 2-4 weeks of engineering to fix critical issues (broken images, add authentication, implement caching) before enterprise deployment.
+**Ready for Production?** Not quite. The system needs additional engineering to fix critical issues (broken images, add authentication, implement caching) before enterprise deployment.
 
 ## Next Steps
 

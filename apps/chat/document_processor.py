@@ -9,7 +9,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import ImageDocument
 from pathlib import Path
 import pdfplumber
-import fitz  # PyMuPDF
+import fitz
 from PIL import Image
 import io
 import logging
@@ -71,7 +71,7 @@ class MultimodalDocumentProcessor:
             'ticker': ticker if ticker else 'Unknown',
             'report_date': str(report_date) if report_date else '',
             'source_file': str(pdf_path),
-            'document_id': document_id if document_id else None,  # Add document ID for linking
+            'document_id': document_id if document_id else None,
         }
         
         # 1. Extract text
