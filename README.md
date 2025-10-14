@@ -67,20 +67,6 @@ When you start the system:
 - How broker names and dates are automatically extracted
 - The trade-offs in our synchronous processing approach
 
-### [RAG Implementation](docs/rag_implementation.md)
-**What it explains:** The search technology that powers question answering
-**Why read this:** Deep dive into how semantic search works
-**Key insights:**
-- Chunking strategy
-- The deduplication scheme that prevents repetitive answers
-
-### [Strengths & Weaknesses](docs/strengths_weaknesses.md)
-**What it explains:** Assessment of what works well and what's broken
-**Why read this:** Understand limitations before using in production
-**Key insights:**
-- Image processing is completely no functional.
-- No caching means unnecessary costs for repeated questions
-- Synchronous architecture limits to ~10 concurrent users
 - **Critical: Table and text formatting remains consistently weak throughout the system**
 
 ## Key Features Explained
@@ -133,7 +119,7 @@ The system uses the following core stack:
 Specialized vector databases like Pinecone are faster but require managing another service. PostgreSQL with pgvector is slower but keeps everything in one database - simpler operations, easier backups, lower complexity.
 
 ### Why 512 Token Chunks?
-Financial documents discuss complex topics. Too small (128 tokens) and you split concepts mid-thought. Too large (2048 tokens) and search becomes imprecise. 512 tokens typically captures 2-3 complete paragraphs - this is an area ripe for exploration and optimization.
+Financial documents discuss complex topics. Too small (128 tokens) and you split concepts mid-thought. Too large (2048 tokens) and search becomes imprecise. 512 tokens typically captures 2-3 complete paragraphs, this is an area ripe for exploration and optimization.
 
 ### Why Multi-Stage Deduplication?
 Without deduplication, searching "NVIDIA price target" might return 5 chunks all saying "$950" from the same report. Our pipeline ensures diverse sources: different pages, different semantic content, different content types (text vs tables).
