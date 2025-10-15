@@ -15,15 +15,17 @@ A system that transforms broker research PDFs into an Q&A interface, allowing us
 
 ```bash
 # Prerequisites: Docker installed on your machine
+# 1. Clone the repo
 git clone git@github.com:nordyjay/fin_research_agent.git
-# 1. Copy environment template and add your OpenAI API key
+
+# 2. Copy environment template and add your OpenAI API key
 cp .env.example .env
 # Edit .env file and add: OPENAI_API_KEY=your-key-here
 
-# 2. Start the system
+# 3. Start the system
 docker-compose up --build
 
-# 3. Access the web interface
+# 4. Access the web interface
 # Open browser to: http://localhost:8000/chat/
 ```
 
