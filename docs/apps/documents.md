@@ -1,4 +1,4 @@
-# Document Management - How PDFs Become Searchable Knowledge
+# Document Management
 
 ## The Business Problem We're Solving
 
@@ -6,7 +6,7 @@ Investment professionals receive dozens of research PDFs every day, reports from
 
 Our documents application ingests PDFs, extracts crucial metadata (who wrote it, when, about which company), and prepares the content for search. 
 
-## The Journey of a PDF - From Upload to Insight
+## PDF Processing
 
 ### Step 1: The Upload Experience
 
@@ -17,13 +17,13 @@ The duplicate detection deserves special attention. Imagine five analysts all up
 **The user experience challenge:**
 Upload and processing takes 10-30 seconds - an eternity in web time. We show progress indicators and status messages ("Extracting metadata...", "Processing content...") to reassure users the system is working. While these progress bars are currently "fake" (they animate on a timer rather than showing real progress), they significantly reduce user anxiety and support requests.
 
-### Step 2: Automatic Metadata Extraction - The Three-Stage System
+### Step 2: Automatic Metadata Extraction
 
 One of our system's most sophisticated features is automatic metadata extraction. When someone uploads "GS_NVDA_20240115.pdf", we automatically understand this is a Goldman Sachs report about NVIDIA from January 15, 2024. But the real magic happens with poorly named files.
 
 **Our three-stage extraction approach:**
 
-**Stage 1: Filename Intelligence (200ms)**
+**Stage 1: Filename Parsing**
 We maintain a library of 30+ regex patterns covering common naming conventions across Wall Street. Examples:
 - "20240115 - Goldman Sachs - NVDA - Q4 Analysis.pdf"
 - "MS_AAPL_Bull_Case_March_2024.pdf"
@@ -31,7 +31,7 @@ We maintain a library of 30+ regex patterns covering common naming conventions a
 
 This stage succeeds for about 70% of documents and takes milliseconds.
 
-**Stage 2: First Page Analysis (~1-5 Seconds~)**
+**Stage 2: First Page Analysis**
 When filenames fail us, we read the first page. Investment research follows predictable patterns - broker names appear in headers, dates in footers, and ticker symbols prominently displayed. We scan for phrases like:
 - "Goldman Sachs Research"
 - Company names and ticker symbols
@@ -39,7 +39,7 @@ When filenames fail us, we read the first page. Investment research follows pred
 
 This catches another ~25% of documents.
 
-**Stage 3: Deep Document Scan (5-10 seconds)**
+**Stage 3: Deep Document Scan**
 For the remaining 5% with non-standard formats, we extract and analyze the entire document's text. While expensive in processing time, this ensures even the most unusually formatted documents get properly categorized.
 
 **The Broker Name Challenge:**
@@ -49,7 +49,7 @@ Wall Street firms use many name variations. We maintain such mappings as:
 
 This normalization ensures that searching for "Goldman Sachs NVIDIA research" finds documents regardless of whether they use "GS", "Goldman", or "Goldman Sachs & Co."
 
-### Step 3: Content Processing - Extracting Every Valuable Byte
+### Step 3: Content Processing
 
 Once we understand what document we're dealing with, we extract its content for search. This involves three distinct extraction processes:
 
@@ -88,7 +88,7 @@ These statistics help users verify processing succeeded and understand document 
 - Processing flags: Track which documents are fully processed
 - Extraction results: Linked to enable reprocessing if needed
 
-## Critical Architecture Decisions and Their Implications
+## Architecture Decisions and Their Implications
 
 
 ### Why Synchronous Processing
@@ -138,7 +138,7 @@ The upload interface hides metadata fields by default, showing them only when us
 **The 90/10 Rule:**
 - 90% of the time, our extraction works perfectly
 - Showing all fields would overwhelm users with unnecessary choices
-- Power users who need overrides can access them with one click
+- Users who need overrides can access them with one click
 
 This design principle - hide complexity, reveal on demand - makes the system approachable for casual users while maintaining power user features.
 
@@ -152,7 +152,7 @@ We show toast notifications for each processing stage:
 4. "Creating searchable index..."
 
 
-## What We Got Right - Strengths of Our Approach
+## Strengths of Our Approach
 
 ### 1. Duplicate Detection
 The SHA256 hashing completely eliminates duplicate processing. In testing with users repeatedly uploading the same documents, we saved thousands of dollars in processing costs.
@@ -166,7 +166,7 @@ When metadata extraction fails, documents still upload successfully with empty m
 ### 4. Comprehensive Processing Statistics
 Storing chunk counts, table counts, and image counts provides valuable quality assurance. Users can spot processing problems ("Why does this 40-page report only have 5 chunks?") and verify completeness.
 
-## What We Got Wrong - Critical Limitations
+## Critical Limitations
 
 ### 1. Synchronous Processing Blocks Everything
 This is our most severe architectural flaw. The synchronous design limits us to roughly 10 concurrent users before the system becomes unusable. Production systems need asynchronous job queues.

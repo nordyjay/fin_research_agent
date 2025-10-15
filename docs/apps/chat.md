@@ -7,14 +7,14 @@ Financial analysts and investors face an information overload problem. A single 
 
 Our chat system solves this by understanding your questions in natural language and finding the most relevant information across all documents. But here's the crucial part: unlike ChatGPT or other AI systems that might hallucinate plausible-sounding answers, our system ONLY provides information that actually exists in your documents, with precise citations.
 
-## Why We Built on LlamaIndex - A Strategic Technology Choice
+## Why We Built on LlamaIndex
 
 When building this system, we selected LlamaIndex, a specialized framework designed specifically for connecting large language models with private documents.
 
 Think of LlamaIndex as a librarian who not only knows where every piece of information is stored but also understands the relationships between different pieces of information. When you ask a question, LlamaIndex orchestrates a complex dance of searching, filtering, and synthesizing to deliver precise answers.
 
 
-## The Critical Decision: How to Slice Documents for Search
+## How to Slice Documents for Search
 
 One of our most important architectural decisions involves how we break documents into searchable pieces.
 
@@ -34,7 +34,7 @@ We break each document into pieces of exactly 512 tokens (roughly 380 words or 2
 
 We don't just slice documents without any overlap. Instead, each chunk overlaps with its neighbors by 50 tokens (about 2-3 sentences). This overlap ensures that if an important concept spans the boundary between chunks, it will be fully captured in at least one chunk.
 
-## The Three-Stage Deduplication System - Ensuring Diverse, Non-Reduandant Results
+## Deduplication System - Ensuring Diverse, Non-Reduandant Results
 
 Documents often repeat the same information in multiple places. Without intelligent filtering, searching for "NVIDIA price target" might return five chunks all saying "$950" from the same Goldman Sachs report, crowding out different perspectives from Morgan Stanley or Barclays.
 
@@ -67,7 +67,7 @@ With deduplication, the same search shows:
 Instead of repetition, users ideally get comprehensive, diverse perspectives.
 
 
-**Critical configuration decisions:**
+**Configuration Decisions:**
 
 1. **Temperature = 0.1** - This makes responses nearly deterministic. Ask the same question twice, get the same answer. This consistency is crucial for financial analysis where reproducibility matters.
 
@@ -75,7 +75,7 @@ Instead of repetition, users ideally get comprehensive, diverse perspectives.
 
 3. **Strict citation requirements** - Our prompt engineering forces the model to cite sources for every claim, this is likely the most ripe area for optimization as queries can be considerably optimized.
 
-## The "Retrieve More, Show Less" Strategy - Why Over-Retrieval Improves Quality
+## Why Over-Retrieval Improves Quality
 
 A counterintuitive finding: retrieving exactly what you need often gives worse results than retrieving too much and filtering. Here's why.
 
@@ -92,12 +92,12 @@ The same principle applies here. Vector similarity (the mathematical measure of 
 
 The computational cost is higher (processing 15 chunks instead of 5) but the answer quality improves. Users ideally get comprehensive, multi-perspective answers instead of single-source echoes.
 
-## Why We Include Full Source Text - Building Trust Through Transparency
+## Why We Include Full Source Text
 
 Most AI systems give you an answer and expect you to trust it, we every answer comes with the complete source text that was used to generate it.
 
 
-## Understanding Our Critical Failures - What's Broken and Why
+## Understanding Our Current Limitations
 
 ### Image Processing Not Yet Implemented
 
@@ -132,7 +132,7 @@ While our system successfully retrieves tables and structured data, they display
 - Add proper character escaping and encoding
 - Provide raw markdown view as interim solution
 
-## What We Got Right - Strengths Worth Preserving
+## What We Got Right
 
 ### 1. Source Attribution
 Every single piece of information can be traced to its exact source document and page.
