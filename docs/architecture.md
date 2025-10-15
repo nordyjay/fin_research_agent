@@ -8,7 +8,7 @@
 When someone clicks "Upload" and selects a broker research PDF, the system first calculates a unique hash of the entire document. This prevents the same document from being processed twice, saving significant time and computational resources.
 
 
-### Step 2: Metadata Extraction - Understanding What We're Looking At
+### Step 2: Metadata Extraction
 
 The system attempts to understand what document it's processing. This happens through a clever three-stage approach that balances accuracy with processing speed.
 
@@ -46,7 +46,7 @@ Each chunk is tagged with rich metadata: the source document, broker, ticker, da
 
 **Why this matters:** Chunking strategy directly impacts search quality. Too small and you lose context. Too large and you lose precision. The 512-token size with 50-token overlap represents limited experimentation to find the balance for financial documents. The rich metadata ensures that every chunk can be traced back to its exact source, enabling the trust in financial analysis.
 
-### Step 5: Embedding Generation - Creating Mathematical Fingerprints
+### Step 5: Embedding Generation
 
 This step transforms human-readable text into mathematical representations that computers can search efficiently. Using OpenAI's text-embedding-3-small model, each chunk gets converted into a list of 1,536 numbers. These numbers encode the semantic meaning of the text in a way that mathematically similar vectors represent conceptually similar text.
 
@@ -55,7 +55,7 @@ Example: "revenue growth" might become [0.23, -0.45, 0.67, ...] while "sales inc
 
 **Why this matters:** Embeddings are the core that enables semantic search. Without them, searching for "bullish outlook" wouldn't find "positive view" or "optimistic forecast." The high dimensionality aims to ensure that subtle differences in financial language are preserved - "revenue growth" vs "revenue growth concerns" have very different embeddings despite similar words.
 
-### Step 6: Vector Storage - Organizing for Lightning-Fast Retrieval
+### Step 6: Vector Storage - Organizing for Fast Retrieval
 
 The embeddings and their associated chunks need to be stored in a way that enables rapid searching across potentially millions of chunks. The system uses PostgreSQL with the pgvector extension, which adds specialized data structures for storing and searching high-dimensional vectors.
 
@@ -64,7 +64,7 @@ The storage schema is as follows. Each record contains the embedding vector, the
 The choice of PostgreSQL over specialized vector databases like Pinecone or Weaviate was deliberate. While specialized databases might be 2-3x faster at pure vector search, PostgreSQL provides advantages: all data lives in one database (simplifying backups and operations), we get ACID compliance (ensuring data consistency), and there's no need to synchronize between multiple systems.
 
 
-### Step 7: Query Processing - Understanding What Users Want
+### Step 7: Query Processing
 
 When a user types a question like "What is Goldman's NVIDIA price target?", the system begins a process to understand and answer the query. First, the question itself gets converted to an embedding using the same process as document chunks. 
 

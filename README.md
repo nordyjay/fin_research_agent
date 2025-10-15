@@ -1,6 +1,6 @@
 # Financial Research Agent
 
-A system that transforms broker research PDFs into an Q&A interface, allowing users to search across hundreds of financial documents using natural language questions.
+A system that transforms broker research PDFs into an Q&A interface, allowing users to search across many financial documents using natural language questions.
 
 
 **Core Functionality:**
@@ -15,7 +15,7 @@ A system that transforms broker research PDFs into an Q&A interface, allowing us
 
 ```bash
 # Prerequisites: Docker installed on your machine
-
+git clone git@github.com:nordyjay/fin_research_agent.git
 # 1. Copy environment template and add your OpenAI API key
 cp .env.example .env
 # Edit .env file and add: OPENAI_API_KEY=your-key-here
@@ -29,11 +29,14 @@ docker-compose up --build
 
 The system automatically loads 4 sample PDFs on first start. Processing takes about 2-3 minutes.
 
+![screenshot](docs/chat_interface.png)
+![screenshot](docs/document_upload.png)
+
 ### What Happens Behind the Scenes
 
 When you start the system:
 1. **Database Creation** - Sets up PostgreSQL with special vector search capabilities
-2. **PDF Processing** - Reads the 4 sample PDFs and extracts their content
+2. **PDF Processing** - Reads financial PDFs and extracts their content
 3. **Embedding Generation** - Converts text into mathematical representations for search
 4. **Web Interface** - Starts a ChatGPT-style interface for asking questions
 
@@ -45,7 +48,6 @@ When you start the system:
 **Key insights:** 
 - Detailed walkthrough of what happens when you upload a document
 - How user questions get transformed into search queries
-- Why we chose PostgreSQL over specialized vector databases
 - Performance characteristics and limits
 
 ### [Chat Application](docs/apps/chat.md)
@@ -55,7 +57,6 @@ When you start the system:
 - Why answers are accurate and always cite sources
 - How the system avoids showing duplicate information
 - The three-stage filtering process that ensures diverse results
-- Why image search is completely broken (and how to fix it)
 - **Note: Table and text formatting in the chat interface remains problematic - see document for details**
 
 ### [Documents Application](docs/apps/documents.md)
@@ -113,27 +114,7 @@ The system uses the following core stack:
 - **LlamaIndex**: Orchestrates document processing and retrieval
 - **Docker**: Ensures consistent deployment across environments
 
-## Why These Design Choices Matter
-
-### Why PostgreSQL Instead of Specialized Vector Databases?
-Specialized vector databases like Pinecone are faster but require managing another service. PostgreSQL with pgvector is slower but keeps everything in one database - simpler operations, easier backups, lower complexity.
-
-### Why 512 Token Chunks?
-Financial documents discuss complex topics. Too small (128 tokens) and you split concepts mid-thought. Too large (2048 tokens) and search becomes imprecise. 512 tokens typically captures 2-3 complete paragraphs, this is an area ripe for exploration and optimization.
-
-### Why Multi-Stage Deduplication?
-Without deduplication, searching "NVIDIA price target" might return 5 chunks all saying "$950" from the same report. Our pipeline ensures diverse sources: different pages, different semantic content, different content types (text vs tables).
-
-## For Product Managers and Business Users
-
-This system transforms static PDF libraries into dynamic knowledge bases. Instead of manually searching through documents, users can ask natural questions and get sourced answers quickly.
-
-**Business Value:**
-- Reduces research time from hours to seconds
-- Potentially ensures no insights are missed across large document sets
-- Scales to thousands of documents
-
-**Ready for Production?** Not quite. The system needs additional engineering to fix critical issues (broken images, add authentication, implement caching) before enterprise deployment.
+**Ready for Production?** Not quite. The system needs additional engineering to fix critical issues (incomplete image parsing , add authentication, implement caching) before enterprise deployment.
 
 ## Next Steps
 
