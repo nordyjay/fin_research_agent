@@ -10,7 +10,7 @@ When someone clicks "Upload" and selects a broker research PDF, the system first
 
 ### Step 2: Metadata Extraction
 
-The system attempts to understand what document it's processing. This happens through a clever three-stage approach that balances accuracy with processing speed.
+The system attempts to understand what document it's processing. This happens through a three-stage approach that balances accuracy with processing speed.
 
 **Stage 1 - Filename Analysis:** The system first examines the filename using pattern matching. It knows that financial firms often follow naming conventions like "20240115 - Goldman Sachs - NVDA - Q4 Analysis.pdf" or "GS_NVDA_2024Q4.pdf". The system maintains a library of over 30 patterns that cover common naming schemes across major brokers. This stage takes mere milliseconds and successfully extracts metadata for about 70% of documents.
 
@@ -26,25 +26,24 @@ The system also maintains a comprehensive mapping of broker name variations. It 
 
 Our system understands that financial documents contain three distinct types of valuable content, each requiring specialized handling.
 
-**Text Extraction:** Using the PyMuPDF library (chosen for its speed and accuracy), the system extracts text page by page. The system preserves formatting cues like headers, paragraphs, and bullet points. It identifies section breaks and maintains reading order even in complex multi-column layouts. Each page's text is tagged with its page number, enabling the precise source attribution that makes this system valuable for financial analysis.
+**Text Extraction:** Using the PyMuPDF library, the system extracts text page by page. The system preserves formatting cues like headers, paragraphs, and bullet points. It identifies section breaks and maintains reading order even in complex multi-column layouts. Each page's text is tagged with its page number, enabling the precise source attribution that makes this system valuable for financial analysis.
 
-**Table Processing:** Financial documents are filled with data tables - revenue projections, comparative analyses, historical trends. The system uses pdfplumber (specifically chosen for its superior table detection) to identify and extract these tables. Tables are converted to a markdown format that preserves their structure. The system also generates an AI-powered summary of each table. So a complex 20-row financial projection table gets both preserved in full detail AND summarized as "Q1-Q4 2024 revenue projections showing 15% YoY growth with improving margins." This dual approach enables both precise data retrieval and conceptual searching.
+**Table Processing:** Financial documents are filled with data tables, revenue projections, comparative analyses, historical trends. The system uses pdfplumber (specifically chosen for its strong table detection) to identify and extract these tables. Tables are converted to a markdown format that preserves their structure. The system also generates an AI-powered summary of each table. So a complex 20-row financial projection table gets both preserved in full detail AND summarized as "Q1-Q4 2024 revenue projections showing 15% YoY growth with improving margins." This dual approach enables both precise data retrieval and conceptual searching.
 
 **Note:** While tables are correctly extracted and stored with proper formatting, the current display system fails to preserve this structure. Tables appear as continuous text strings rather than structured data. This frontend display issue significantly impacts usability.
 
-**Image Extraction:** The system identifies and extracts all images, charts, and graphs from PDFs. These are saved as separate image files with systematic naming that links them back to their source document and page. Unfortunately, this is where we hit a critical failure - while images are successfully extracted, the system cannot generate searchable descriptions at this point. This means roughly 30% of valuable content (all those charts showing trends, market share diagrams, and visual comparisons) remains invisible to search queries.
+**Image Extraction:** The system identifies and extracts all images, charts, and graphs from PDFs. These are saved as separate image files with systematic naming that links them back to their source document and page. Unfortunately, this is where we hit a limitation, while images are successfully extracted, the system does not yet generate searchable descriptions at this point. This means roughly 30% of valuable content (all those charts showing trends, market share diagrams, and visual comparisons) remains invisible to search queries.
 
-**Why this matters:** Financial analysis relies heavily on all three content types. Text provides context and reasoning, tables contain the hard data, and charts visualize trends and relationships. By extracting all three (even if image search is currently broken), the system creates a comprehensive knowledge base. The dual approach to tables (keeping both raw data and summaries) is particularly clever - it enables both "find Apple's Q3 revenue" (specific data) and "show me strong revenue growth" (conceptual) searches to work effectively.
 
 ### Step 4: Chunking - Breaking Documents Into Searchable Pieces
 
 The system can't search through entire 50-page documents efficiently, so it breaks them into smaller, overlapping pieces called "chunks." Each chunk contains 512 tokens (roughly 380 words or 2-3 paragraphs). This size was chosen after testing revealed that smaller chunks (128-256 tokens) would split important concepts across boundaries. 
 
-The innovation is the 50-token overlap between consecutive chunks. This overlap (roughly 2-3 sentences) ensures that concepts spanning chunk boundaries remain searchable. If chunk 1 ends with "This growth is primarily due to three factors:" and chunk 2 starts with those factors, the overlap ensures both chunks contain the complete thought.
+The main innovation identified is the 50-token overlap between consecutive chunks. This overlap (roughly 2-3 sentences) ensures that concepts spanning chunk boundaries remain searchable. If chunk 1 ends with "This growth is primarily due to three factors:" and chunk 2 starts with those factors, the overlap ensures both chunks contain the complete thought.
 
 Each chunk is tagged with rich metadata: the source document, broker, ticker, date, page number, and position within the page. This metadata enables the filtering and attribution that makes the system valuable.
 
-**Why this matters:** Chunking strategy directly impacts search quality. Too small and you lose context. Too large and you lose precision. The 512-token size with 50-token overlap represents limited experimentation to find the balance for financial documents. The rich metadata ensures that every chunk can be traced back to its exact source, enabling the trust in financial analysis.
+**Why this matters:** Chunking strategy directly impacts search quality. Too small and you lose context. Too large and you lose precision. The 512-token size with 50-token overlap represents limited experimentation to find the balance for financial documents. The rich metadata ensures that every chunk can be traced back to its exact source, enabling the trust in financial analysis.  This is a area ripe for research and optimization.
 
 ### Step 5: Embedding Generation
 
@@ -55,13 +54,13 @@ Example: "revenue growth" might become [0.23, -0.45, 0.67, ...] while "sales inc
 
 **Why this matters:** Embeddings are the core that enables semantic search. Without them, searching for "bullish outlook" wouldn't find "positive view" or "optimistic forecast." The high dimensionality aims to ensure that subtle differences in financial language are preserved - "revenue growth" vs "revenue growth concerns" have very different embeddings despite similar words.
 
-### Step 6: Vector Storage - Organizing for Fast Retrieval
+### Step 6: Vector Storage
 
-The embeddings and their associated chunks need to be stored in a way that enables rapid searching across potentially millions of chunks. The system uses PostgreSQL with the pgvector extension, which adds specialized data structures for storing and searching high-dimensional vectors.
+The embeddings and their associated chunks need to be stored in a way that enables fast searching across potentially millions of chunks. The system uses PostgreSQL with the pgvector extension, which adds specialized data structures for storing and searching high-dimensional vectors.
 
 The storage schema is as follows. Each record contains the embedding vector, the original text, and metadata stored as JSON. The system creates a specialized index using the IVFFlat algorithm, which organizes vectors into 100 clusters. When searching, the system only needs to check vectors in relevant clusters rather than all vectors, improving performance.
 
-The choice of PostgreSQL over specialized vector databases like Pinecone or Weaviate was deliberate. While specialized databases might be 2-3x faster at pure vector search, PostgreSQL provides advantages: all data lives in one database (simplifying backups and operations), we get ACID compliance (ensuring data consistency), and there's no need to synchronize between multiple systems.
+The choice of PostgreSQL over specialized vector databases like Pinecone or Weaviate was deliberate. While specialized databases might be 2-3x faster at pure vector search, PostgreSQL provides advantages: all data lives in one database (simplifying backups and operations), and there's no need to synchronize between multiple systems.
 
 
 ### Step 7: Query Processing
@@ -80,9 +79,7 @@ Vector similarity might rank five chunks from the same Goldman Sachs report page
 
 With filtered chunks in hand, the system now needs to synthesize a coherent answer. All retrieved chunks are passed to OpenAI's GPT-4-mini model along with prompting. The prompt template enforces critical constraints: use only information from the provided chunks, cite sources with broker and page details, distinguish between different sources' views, and acknowledge when information isn't available.
 
-The system uses "single-shot" synthesis, meaning all chunks are processed together in one API call. This approach was chosen over alternatives like iterative refinement (which can drift from the original question) or hierarchical summarization (which loses important details).
-
-Temperature is set to 0.1, making responses nearly deterministic. This ensures that asking the same question multiple times yields consistent answers - crucial for financial analysis where reproducibility matters.
+Temperature is set to 0.1, making responses nearly deterministic. This ensures that asking the same question multiple times yields consistent answers, pertinant for financial analysis where reproducibility matters.
 
 The response includes both the synthesized answer and detailed source information. Each source reference contains the broker name, ticker, date, page number, and relevance score. Users can click any source to see the full text chunk, ensuring complete transparency.
 
