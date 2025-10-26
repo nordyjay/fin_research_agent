@@ -1,7 +1,7 @@
 # System Architecture
 
 
-##From PDF to Answer
+## From PDF to Answer
 
 ### Step 1: Document Upload - Getting PDFs Into the System
 
